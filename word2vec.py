@@ -2,6 +2,19 @@ import numpy as np
 import tensorflow as tf
 import pandas
 import re
+import sys
+
+#####################################################################
+#                              Helpers                              #
+#####################################################################
+# function to convert numbers to one hot vectors
+def to_one_hot(data_point_index, vocab_size):
+    temp = np.zeros(vocab_size)
+    temp[data_point_index] = 1
+    return temp
+
+def euclidean_dist(v1, v2):
+    return np.linalg.norm(v1-v2)
 
 #####################################################################
 #                               Data                                #
@@ -37,7 +50,7 @@ WINDOW_SIZE = 2
 
 # get nearby words
 data = []
-for tweet in tweets:
+for tweet in tweets_list:
     for word_index, word in enumerate(tweet):
         for nearby_word in tweet[max(word_index - WINDOW_SIZE, 0) : min(word_index + WINDOW_SIZE, len(tweet)) + 1] :
             if nearby_word != word:
@@ -45,12 +58,6 @@ for tweet in tweets:
 
 x_train = [] # input word
 y_train = [] # output word
-
-# function to convert numbers to one hot vectors
-def to_one_hot(data_point_index, vocab_size):
-    temp = np.zeros(vocab_size)
-    temp[data_point_index] = 1
-    return temp
 
 for data_word in data:
     x_train.append(to_one_hot(word2int[data_word[0]], vocab_size))
@@ -64,7 +71,7 @@ y_train = np.asarray(y_train)
 #####################################################################
 #                               Model                               #
 #####################################################################
-# placeholders for x_train and y_train
+# placeholders for x_train and y_label
 x = tf.placeholder(tf.float32, shape=(None, vocab_size))
 y_label = tf.placeholder(tf.float32, shape=(None, vocab_size))
 
@@ -83,6 +90,31 @@ hidden_representation =tf.add(tf.matmul(x, W1), b1)
 W2 = tf.Variable(tf.random_normal([EMBEDDING_DIM, vocab_size]))
 b2 = tf.Variable(tf.random_normal([vocab_size])) # bias
 prediction = tf.nn.softmax(tf.add(tf.matmul(hidden_representation, W2), b2))
+
+#####################################################################
+#                             Training                              #
+#####################################################################
+
+# Start session
+sess = tf.Session()
+init = tf.global_variables_initializer()
+sess.run(init)
+
+# loss function
+# multiply the label with log(prediction), add all of them up and get the mean
+cross_entropy_loss = tf.reduce_mean(-tf.reduce_sum(y_label * tf.log(prediction), axis=[1]))
+
+# train step
+train_step = tf.train.GradientDescentOptimizer(0.1).minimize(cross_entropy_loss)
+
+n_iters = 10000
+
+# train for n_iters iterations
+for _ in range(n_iters):
+    sess.run(train_step, feed_dict={x: x_train, y_label: y_train})
+    print('loss is : ', sess.run(cross_entropy_loss, feed_dict={x: x_train, y_label: y_train}))
+
+vectors = sess.run(W1 + b1)
 
 
 
