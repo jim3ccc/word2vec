@@ -2,7 +2,6 @@ import numpy as np
 import tensorflow as tf
 import pandas
 import re
-import sys
 
 #####################################################################
 #                              Helpers                              #
@@ -37,24 +36,28 @@ for tweet in tweets_list:
     for word in tweet.split():
         words.append(word)
 
-words = set(words)
+words_set = set(words)
 word2int = {}
 int2word = {}
-vocab_size = len(words)
+vocab_size = len(words_set)
 
-for i,word in enumerate(words):
+for i,word in enumerate(words_set):
     word2int[word] = i
     int2word[i] = word
 
 WINDOW_SIZE = 2
 
-# get nearby words
+sentences = tweets_list
+sentences = [s.split() for s in sentences]
+
+# create list of nearby word pairs 
 data = []
-for tweet in tweets_list:
-    for word_index, word in enumerate(tweet):
-        for nearby_word in tweet[max(word_index - WINDOW_SIZE, 0) : min(word_index + WINDOW_SIZE, len(tweet)) + 1] :
+for s in sentences:
+    for word_index, word in enumerate(s):
+        for nearby_word in s[max(word_index - WINDOW_SIZE, 0) : min(word_index + WINDOW_SIZE, len(s)) + 1] :
             if nearby_word != word:
                 data.append([word, nearby_word])
+                print([word, nearby_word])
 
 x_train = [] # input word
 y_train = [] # output word
